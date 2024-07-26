@@ -1,6 +1,6 @@
 import logging
 import os
-import sqlite3
+import psycopg2
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext
 from dotenv import load_dotenv
@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 # Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Enable logging
 logging.basicConfig(
@@ -16,12 +17,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize SQLite database
-conn = sqlite3.connect('bookings.db', check_same_thread=False)
+# Initialize PostgreSQL database
+conn = psycopg2.connect(DATABASE_URL)
 c = conn.cursor()
 c.execute('''
     CREATE TABLE IF NOT EXISTS bookings (
-        id INTEGER PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         date TEXT,
         start_time TEXT,
         end_time TEXT,
@@ -46,7 +47,7 @@ async def start(update: Update, context: CallbackContext) -> None:
 
 async def help_command(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /help is issued."""
-    await update.message.reply_text('Use /book to book the conference room.')
+    await update.message.reply_text('Use /book to book the conference room. Use /list to view all bookings.')
 
 async def book(update: Update, context: CallbackContext) -> None:
     """Handle the /book command by showing date selection."""
@@ -78,11 +79,11 @@ async def handle_date_selection(update: Update, context: CallbackContext) -> Non
     user_state[user_id]['date'] = selected_date
 
     # Fetch booked time slots for the selected date
-    c.execute('SELECT start_time, end_time FROM bookings WHERE date = ?', (selected_date,))
+    c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
     booked_slots = c.fetchall()
 
     # Convert booked slots to datetime.time objects
-    booked_slots = [(datetime.strptime(start, "%H:%M").time(), datetime.strptime(end, "%H:%M").time()) for start, end in booked_slots]
+    booked_slots = [(datetime.strptime(start, TIME_FORMAT).time(), datetime.strptime(end, TIME_FORMAT).time()) for start, end in booked_slots]
 
     # Generate available start time slots (on the hour from 09:00 to 17:00)
     start_hour = 9
@@ -118,7 +119,7 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
     start_time = datetime.strptime(selected_start_time, TIME_FORMAT).time()
 
     # Fetch booked time slots for the selected date
-    c.execute('SELECT start_time, end_time FROM bookings WHERE date = ?', (selected_date,))
+    c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
     booked_slots = c.fetchall()
 
     # Convert booked slots to datetime.time objects
@@ -162,7 +163,7 @@ async def handle_end_time_selection(update: Update, context: CallbackContext) ->
     username = query.from_user.username
 
     # Insert the booking into the database
-    c.execute('INSERT INTO bookings (date, start_time, end_time, username) VALUES (?, ?, ?, ?)', 
+    c.execute('INSERT INTO bookings (date, start_time, end_time, username) VALUES (%s, %s, %s, %s)', 
               (date, start_time, end_time, username))
     conn.commit()
 
@@ -171,14 +172,22 @@ async def handle_end_time_selection(update: Update, context: CallbackContext) ->
 async def list_bookings(update: Update, context: CallbackContext) -> None:
     """List all bookings."""
     response = "Bookings:\n"
-    for row in c.execute('SELECT date, start_time, end_time, username FROM bookings'):
+    c.execute('SELECT date, start_time, end_time, username FROM bookings')
+    rows = c.fetchall()
+    for row in rows:
         response += f"{row[0]} from {row[1]} to {row[2]} by {row[3]}\n"
     await update.message.reply_text(response)
+
+from telegram import BotCommand
+
+async def post_init(application: Application) -> None:
+    await application.bot.set_my_commands([('start', 'Starts the bot'), ('help', 'View available commands'), 
+                                           ('list', 'View current bookings'), ('book', 'Make a booking')])
 
 def main() -> None:
     """Start the bot."""
     # Create the Application
-    application = Application.builder().token(BOT_TOKEN).build()
+    application = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
 
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
