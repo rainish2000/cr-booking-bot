@@ -1,3 +1,4 @@
 python-dotenv
 datetime
 python-telegram-bot
+psycopg2
