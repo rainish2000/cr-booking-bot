@@ -1,0 +1,4 @@
+telegram-api
+python-dotenv
+datetime
+python-telegram-bot

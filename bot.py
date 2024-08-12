@@ -14,7 +14,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Enable logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
@@ -292,8 +292,9 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
     response = "Upcoming Bookings:\n\n"
     
     # Fetch all bookings from the database
-    c.execute('SELECT date, start_time, end_time, username FROM bookings')
+    c.execute('SELECT date, start_time, end_time, username, details FROM bookings')
     rows = c.fetchall()
+    print(rows)
     
     # Get current date and time
     now = datetime.now()
@@ -308,10 +309,11 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
         
         # Check if the booking is upcoming (not yet ended)
         if datetime.combine(booking_date, booking_end_time) > now:
-            upcoming_bookings.append((booking_date, booking_start_time, booking_end_time, row[3]))
+            upcoming_bookings.append((booking_date, booking_start_time, booking_end_time, row[3], row[4]))
 
     # Sort upcoming bookings by date
     upcoming_bookings.sort(key=lambda x: x[0])
+    print(upcoming_bookings)
 
     # Create the response message
     for booking in upcoming_bookings:
