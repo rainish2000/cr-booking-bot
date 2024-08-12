@@ -3,3 +3,4 @@ datetime
 python-telegram-bot
 wheel
 psycopg2
+python-telegram-bot-calendar
