@@ -1,5 +1,5 @@
-telegram-api
 python-dotenv
 datetime
 python-telegram-bot
 wheel
+psycopg2
