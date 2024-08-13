@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 conn = psycopg2.connect(DATABASE_URL)
 c = conn.cursor()
 c.execute('''
+    DROP TABLE bookings;
     CREATE TABLE IF NOT EXISTS bookings (
         id SERIAL PRIMARY KEY,
         date TEXT,
@@ -51,11 +52,11 @@ class MyStyleCalendar(DetailedTelegramCalendar):
 async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
     await update.message.reply_markdown_v2(
-        fr'Hi {user.mention_markdown_v2()}\! Use /book to make a booking, or /list to view upcoming bookings',
+        fr'Hello {user.mention_markdown_v2()}\! Use /book to make a booking, or /list to view upcoming bookings',
     )
 
 async def help_command(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text('Use /book to book the conference room. Use /list to view all bookings.')
+    await update.message.reply_text('Use /book to make a booking. Use /list to view upcoming bookings.')
 
 async def book(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
@@ -113,6 +114,7 @@ async def handle_date_selection(update: Update, context: CallbackContext) -> int
         # Generate time slot buttons
         keyboard = [[InlineKeyboardButton(slot, callback_data=f"start_time:{slot}")] for slot in time_slots]
         keyboard.append([InlineKeyboardButton("Cancel", callback_data="cancel")])
+        #// keyboard.append([InlineKeyboardButton("Back", callback_data="back_to_start")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(f'You have chosen {selected_date}. Select a start time:', reply_markup=reply_markup)
         return SELECTING_START
@@ -124,6 +126,9 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
     if query.data == "cancel":
         await query.edit_message_text('Booking process canceled.')
         return ConversationHandler.END
+
+    #//  if query.data == "back_to_start":
+    #//     return await handle_date_selection()
 
     user_id = query.from_user.id
     selected_start_time = query.data.split(':')[1]
@@ -175,6 +180,7 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
     # Generate time slot buttons
     keyboard = [[InlineKeyboardButton(slot, callback_data=f"end_time:{slot}")] for slot in time_slots]
     keyboard.append([InlineKeyboardButton("Cancel", callback_data="cancel")])
+    #// keyboard.append([InlineKeyboardButton("Back", callback_data="back_to_start_time")])
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(f'You have chosen start time {selected_start_time}. Select an end time:', reply_markup=reply_markup)
     return SELECTING_END
@@ -187,18 +193,20 @@ async def handle_end_time_selection(update: Update, context: CallbackContext) ->
     if query.data == "cancel":
         await query.edit_message_text('Booking process canceled.')
         return ConversationHandler.END
+
+    #// if query.data == "back_to_start_time":
+    #//     print("back to start time pressed")
+    #//     return SELECTING_START
     
     user_id = query.from_user.id
     selected_end_time = query.data.split(':')[1]
     user_state[user_id]['end_time'] = selected_end_time
 
     # Prompt user to enter meeting details
-    await query.edit_message_text(f"You have chosen end time {selected_end_time}. Please type in the details for the meeting:")
+    await query.edit_message_text(f"You have chosen end time {selected_end_time}. Please type in the details for the meeting:\nE.g. \"Meeting with XXX\"")
     return TYPING_DETAILS
 
 async def receive_meeting_details(update: Update, context: CallbackContext) -> int:
-    """Receive meeting details and confirm the booking."""
-    print("HI FINALLY")
     user_id = update.message.from_user.id
     details = update.message.text
     user_state[user_id]['details'] = details
@@ -230,7 +238,7 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
     # Fetch all bookings from the database
     c.execute('SELECT date, start_time, end_time, username, details FROM bookings')
     rows = c.fetchall()
-    print(rows)
+    #// print(rows)
     
     # Get current date and time
     now = datetime.now()
@@ -249,11 +257,12 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
 
     # Sort upcoming bookings by date
     upcoming_bookings.sort(key=lambda x: x[0])
-    print(upcoming_bookings)
+    for booking in upcoming_bookings:
+        print(booking)
 
     # Create the response message
     for booking in upcoming_bookings:
-        booking_date_str = booking[0].strftime(DATE_FORMAT)  # Format the date
+        booking_date_str = booking[0].strftime(DATE_FORMAT)
         booking_start_str = booking[1].strftime(TIME_FORMAT)
         booking_end_str = booking[2].strftime(TIME_FORMAT)
         username = booking[3]
