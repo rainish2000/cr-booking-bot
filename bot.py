@@ -338,6 +338,7 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
         result = c.fetchone()
     except:
         await update.message.reply_text('An error occured. Try again using /delete, and please provide only a single number in your reply.')
+        c.connection.rollback()
         return ConversationHandler.END
 
     if result is None:
