@@ -358,6 +358,7 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     conn.commit()
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
+    await context.bot.send_message(chat_id=-100218566008523, text="deleted")
     return ConversationHandler.END
     
 async def cancel(update: Update, context: CallbackContext) -> int:
