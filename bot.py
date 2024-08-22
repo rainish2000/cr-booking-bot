@@ -6,11 +6,38 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Call
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, date
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
+import boto3
 
 # Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-DATABASE_URL = os.getenv("DATABASE_URL")
+HOSTNAME = os.getenv("HOSTNAME")
+PORT = os.getenv("PORT")
+DATABASE = os.getenv("DATABASE")
+SECRET_NAME = os.getenv("SECRET_NAME")
+
+region_name = "ap-southeast-1"
+
+# Create a Secrets Manager client
+session = boto3.session.Session()
+client = session.client(
+    service_name='secretsmanager',
+    region_name=region_name
+)
+
+try:
+    get_secret_value_response = client.get_secret_value(
+        SecretId=SECRET_NAME
+    )
+
+except Exception as e:
+    raise e
+
+secret = get_secret_value_response['SecretString']
+username = secret['username']
+password = secret['password']
+
+conn = psycopg2.connect(host=HOSTNAME,port=PORT,database=DATABASE, user=username, password=password)
 
 # Enable logging
 logging.basicConfig(
@@ -22,7 +49,6 @@ logger = logging.getLogger(__name__)
 conn = psycopg2.connect(DATABASE_URL)
 c = conn.cursor()
 c.execute('''
-    DROP TABLE bookings;
     CREATE TABLE IF NOT EXISTS bookings (
         id SERIAL PRIMARY KEY,
         date TEXT,
