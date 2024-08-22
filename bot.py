@@ -12,7 +12,7 @@ from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 # Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-HOSTNAME = os.getenv("HOSTNAME")
+DB_HOSTNAME = os.getenv("DB_HOSTNAME")
 PORT = os.getenv("PORT")
 SECRET_NAME = os.getenv("SECRET_NAME")
 
