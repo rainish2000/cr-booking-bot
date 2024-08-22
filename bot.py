@@ -322,7 +322,7 @@ async def delete_booking(update: Update, context: CallbackContext) -> int:
 
     # Send the list of bookings to the user
     await update.message.reply_text("\n".join(booking_list))
-    await update.message.reply_text('Please provide the booking ID you want to delete.')
+    await update.message.reply_text('Please provide the booking ID you want to delete. E.g. if your booking\'s ID shown above is 4, just reply with "4".')
 
     return DELETING_BOOKING
 
