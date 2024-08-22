@@ -385,12 +385,14 @@ def main() -> None:
     application.add_handler(conv_handler)
 
     delete_conv_handler = ConversationHandler(
-    entry_points=[CommandHandler('delete', delete_booking)],
-    states={
-        DELETING_BOOKING: [MessageHandler(filters.TEXT, confirm_delete_booking)],
-    },
-    fallbacks=[CallbackQueryHandler(delete_booking, pattern="^cancel$")],
-)
+        entry_points=[CommandHandler('delete', delete_booking)],
+        states={
+            DELETING_BOOKING: [MessageHandler(filters.TEXT, confirm_delete_booking)],
+        },
+        fallbacks=[CallbackQueryHandler(delete_booking, pattern="^cancel$")],
+    )
+    
+    application.add_handler(delete_conv_handler)
 
     # Start the Bot
     application.run_polling()
