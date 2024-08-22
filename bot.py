@@ -63,7 +63,7 @@ conn.commit()
 # Date format
 DATE_FORMAT = "%d %b %Y"
 TIME_FORMAT = "%H%M"
-SELECTING_DATE, SELECTING_START, SELECTING_END, TYPING_DETAILS, DELETING_BOOKING = range(4)
+SELECTING_DATE, SELECTING_START, SELECTING_END, TYPING_DETAILS, DELETING_BOOKING = range(5)
 
 # State dictionary to manage user interactions
 user_state = {}
