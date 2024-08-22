@@ -80,6 +80,8 @@ async def start(update: Update, context: CallbackContext) -> None:
     await update.message.reply_markdown_v2(
         fr'Hello {user.mention_markdown_v2()}\! Use /book to make a booking, or /list to view upcoming bookings',
     )
+    chat_id = update.message.chat_id
+    print(f"Chat ID: {chat_id}")
 
 async def help_command(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Use /book to make a booking. Use /list to view upcoming bookings.')
