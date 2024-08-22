@@ -81,8 +81,6 @@ async def start(update: Update, context: CallbackContext) -> None:
     await update.message.reply_markdown_v2(
         fr'Hello {user.mention_markdown_v2()}\! Use /book to make a booking, or /list to view upcoming bookings',
     )
-    chat_id = update.message.chat_id
-    print(f"Chat ID: {chat_id}")
 
 
 async def help_command(update: Update, context: CallbackContext) -> None:
@@ -256,7 +254,7 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
         reply_markup=ReplyKeyboardRemove()
     )
 
-    await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
+    # await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
 
     # Clear the user state
     user_state.pop(user_id, None)
