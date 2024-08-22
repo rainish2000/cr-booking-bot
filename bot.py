@@ -46,7 +46,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize PostgreSQL database
-conn = psycopg2.connect(DATABASE_URL)
 c = conn.cursor()
 c.execute('''
     CREATE TABLE IF NOT EXISTS bookings (
