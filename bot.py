@@ -15,6 +15,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_HOSTNAME = os.getenv("DB_HOSTNAME")
 PORT = os.getenv("PORT")
 SECRET_NAME = os.getenv("SECRET_NAME")
+CHAT_ID = os.getenv("CHAT_ID")
 
 region_name = "ap-southeast-1"
 
@@ -82,7 +83,6 @@ async def start(update: Update, context: CallbackContext) -> None:
     )
     chat_id = update.message.chat_id
     print(f"Chat ID: {chat_id}")
-    await context.bot.send_message(-1002185660085, "deleted")
 
 
 async def help_command(update: Update, context: CallbackContext) -> None:
@@ -252,9 +252,11 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
     conn.commit()
 
     await update.message.reply_text(
-        f"Conference room booked for {date} from {start_time} to {end_time} by {username}.\nDetails: {details}",
+        f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}",
         reply_markup=ReplyKeyboardRemove()
     )
+
+    await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
 
     # Clear the user state
     user_state.pop(user_id, None)
