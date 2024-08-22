@@ -63,7 +63,7 @@ conn.commit()
 # Date format
 DATE_FORMAT = "%d %b %Y"
 TIME_FORMAT = "%H%M"
-SELECTING_DATE, SELECTING_START, SELECTING_END, TYPING_DETAILS = range(4)
+SELECTING_DATE, SELECTING_START, SELECTING_END, TYPING_DETAILS, DELETING_BOOKING = range(4)
 
 # State dictionary to manage user interactions
 user_state = {}
@@ -302,8 +302,8 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
 
     await update.message.reply_text(response)
 
-async def delete_booking(update: Update, context: CallbackContext) -> None:
-    """List the user's bookings and delete one if they provide the correct ID."""
+async def delete_booking(update: Update, context: CallbackContext) -> int:
+    """List the user's bookings and ask for the ID of the one they want to delete."""
     user = update.message.from_user
     username = user.username
 
@@ -313,7 +313,7 @@ async def delete_booking(update: Update, context: CallbackContext) -> None:
 
     if not results:
         await update.message.reply_text('You have no bookings to delete.')
-        return
+        return ConversationHandler.END
 
     # Format the list of bookings
     booking_list = ["Your bookings:"]
@@ -322,32 +322,40 @@ async def delete_booking(update: Update, context: CallbackContext) -> None:
 
     # Send the list of bookings to the user
     await update.message.reply_text("\n".join(booking_list))
+    await update.message.reply_text('Please provide the booking ID you want to delete.')
 
-    # Check if a booking ID is provided
-    if len(context.args) != 1:
-        await update.message.reply_text('Please provide the booking ID to delete after listing the bookings.')
-        return
+    return DELETING_BOOKING
 
-    booking_id = context.args[0]
+async def confirm_delete_booking(update: Update, context: CallbackContext) -> int:
+    """Delete the booking if the user provides the correct ID."""
+    user = update.message.from_user
+    username = user.username
+    booking_id = update.message.text
 
     # Fetch the booking to verify the user
     c.execute("SELECT username FROM bookings WHERE id = %s;", (booking_id,))
     result = c.fetchone()
 
     if result is None:
-        await update.message.reply_text('Booking not found.')
-        return
+        await update.message.reply_text('Booking not found. Operation cancelled.')
+        return ConversationHandler.END
 
     if result[0] != username:
-        await update.message.reply_text('You can only delete your own bookings.')
-        return
+        await update.message.reply_text('You can only delete your own bookings. Operation cancelled.')
+        return ConversationHandler.END
 
     # Delete the booking
     c.execute("DELETE FROM bookings WHERE id = %s;", (booking_id,))
     conn.commit()
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
+    return ConversationHandler.END
     
+async def cancel(update: Update, context: CallbackContext) -> int:
+    """Cancel the conversation."""
+    await update.message.reply_text('Operation cancelled.')
+    return ConversationHandler.END
+
 def main() -> None:
     """Start the bot."""
     # Create the Application
@@ -357,7 +365,6 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("list", list_bookings))
-    application.add_handler(CommandHandler("delete", delete_booking))
     
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("book", book)],
@@ -376,6 +383,14 @@ def main() -> None:
 
     # Add the conversation handler to the application
     application.add_handler(conv_handler)
+
+    delete_conv_handler = ConversationHandler(
+    entry_points=[CommandHandler('delete', delete_booking)],
+    states={
+        DELETING_BOOKING: [MessageHandler(filters.TEXT, confirm_delete_booking)],
+    },
+    fallbacks=[CallbackQueryHandler(delete_booking, pattern="^cancel$")],
+)
 
     # Start the Bot
     application.run_polling()
