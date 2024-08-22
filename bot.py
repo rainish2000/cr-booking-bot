@@ -331,7 +331,6 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     user = update.message.from_user
     username = user.username
     booking_id = update.message.text
-    print (booking_id.type)
 
     if booking_id == "cancel":
         await update.message.reply_text('Operation cancelled.')
