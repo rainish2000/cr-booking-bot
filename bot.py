@@ -14,7 +14,6 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 HOSTNAME = os.getenv("HOSTNAME")
 PORT = os.getenv("PORT")
-DATABASE = os.getenv("DATABASE")
 SECRET_NAME = os.getenv("SECRET_NAME")
 
 region_name = "ap-southeast-1"
@@ -39,7 +38,7 @@ secret = json.loads(get_secret_value_response['SecretString'])
 username = secret['username']
 password = secret['password']
 
-conn = psycopg2.connect(host=HOSTNAME,port=PORT,database=DATABASE, user=username, password=password)
+conn = psycopg2.connect(host=HOSTNAME,port=PORT, user=username, password=password)
 
 # Enable logging
 logging.basicConfig(
