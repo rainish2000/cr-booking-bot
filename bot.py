@@ -302,7 +302,7 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
 
     await update.message.reply_text(response)
 
-def delete_booking(update: Update, context: CallbackContext) -> None:
+async def delete_booking(update: Update, context: CallbackContext) -> None:
     """List the user's bookings and delete one if they provide the correct ID."""
     user = update.message.from_user
     username = user.username
@@ -312,7 +312,7 @@ def delete_booking(update: Update, context: CallbackContext) -> None:
     results = c.fetchall()
 
     if not results:
-        update.message.reply_text('You have no bookings to delete.')
+        await update.message.reply_text('You have no bookings to delete.')
         return
 
     # Format the list of bookings
@@ -321,11 +321,11 @@ def delete_booking(update: Update, context: CallbackContext) -> None:
         booking_list.append(f"ID: {booking[0]}, Date: {booking[1]}, Start: {booking[2]}, End: {booking[3]}, Details: {booking[4]}")
 
     # Send the list of bookings to the user
-    update.message.reply_text("\n".join(booking_list))
+    await update.message.reply_text("\n".join(booking_list))
 
     # Check if a booking ID is provided
     if len(context.args) != 1:
-        update.message.reply_text('Please provide the booking ID to delete after listing the bookings.')
+        await update.message.reply_text('Please provide the booking ID to delete after listing the bookings.')
         return
 
     booking_id = context.args[0]
@@ -335,18 +335,18 @@ def delete_booking(update: Update, context: CallbackContext) -> None:
     result = c.fetchone()
 
     if result is None:
-        update.message.reply_text('Booking not found.')
+        await update.message.reply_text('Booking not found.')
         return
 
     if result[0] != username:
-        update.message.reply_text('You can only delete your own bookings.')
+        await update.message.reply_text('You can only delete your own bookings.')
         return
 
     # Delete the booking
     c.execute("DELETE FROM bookings WHERE id = %s;", (booking_id,))
     conn.commit()
 
-    update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
+    await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
     
 def main() -> None:
     """Start the bot."""
