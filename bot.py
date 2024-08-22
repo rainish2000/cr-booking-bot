@@ -1,12 +1,13 @@
 import logging
 import os
 import psycopg2
+import boto3
+import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, ConversationHandler, filters
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, date
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
-import boto3
 
 # Load environment variables
 load_dotenv()
@@ -33,10 +34,10 @@ try:
 except Exception as e:
     raise e
 
-secret = get_secret_value_response['SecretString']
-username = secret[0]
-print(username)
-password = secret[1]
+secret = json.loads(get_secret_value_response['SecretString'])
+
+username = secret['username']
+password = secret['password']
 
 conn = psycopg2.connect(host=HOSTNAME,port=PORT,database=DATABASE, user=username, password=password)
 
