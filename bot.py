@@ -34,8 +34,9 @@ except Exception as e:
     raise e
 
 secret = get_secret_value_response['SecretString']
-username = secret['username']
-password = secret['password']
+print(secret)
+# username = secret[0]
+# password = secret[1]
 
 conn = psycopg2.connect(host=HOSTNAME,port=PORT,database=DATABASE, user=username, password=password)
 
