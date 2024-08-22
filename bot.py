@@ -333,11 +333,14 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     booking_id = update.message.text
 
     # Fetch the booking to verify the user
-    c.execute("SELECT username FROM bookings WHERE id = %s;", (booking_id,))
-    result = c.fetchone()
+    try:
+        c.execute("SELECT username FROM bookings WHERE id = %s;", (booking_id,))
+        result = c.fetchone()
+    except:
+        await update.reply_text('An error occured. Try again using /delete, and please provide only a single number in your reply.')
 
     if result is None:
-        await update.message.reply_text('Booking not found. Operation cancelled.')
+        await update.message.reply_text('Booking not found with that ID. Operation cancelled.')
         return ConversationHandler.END
 
     if result[0] != username:
