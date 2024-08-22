@@ -82,7 +82,7 @@ async def start(update: Update, context: CallbackContext) -> None:
     )
     chat_id = update.message.chat_id
     print(f"Chat ID: {chat_id}")
-    await context.bot.send_message(chat_id, "deleted")
+    await context.bot.send_message(-1002185660085, "deleted")
 
 
 async def help_command(update: Update, context: CallbackContext) -> None:
