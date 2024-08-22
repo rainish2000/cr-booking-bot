@@ -322,7 +322,7 @@ async def delete_booking(update: Update, context: CallbackContext) -> int:
 
     # Send the list of bookings to the user
     await update.message.reply_text("\n".join(booking_list))
-    await update.message.reply_text('Please provide the booking ID you want to delete. E.g. if your booking\'s ID shown above is 4, just reply with "4".')
+    await update.message.reply_text('Please provide the booking ID you want to delete. E.g. if your booking\'s ID shown above is 4, just reply with "4". Type "cancel" to cancel.')
 
     return DELETING_BOOKING
 
@@ -331,6 +331,10 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     user = update.message.from_user
     username = user.username
     booking_id = update.message.text
+
+    if booking_id is "cancel":
+        await update.message.reply_text('Operation cancelled.')
+        return ConversationHandler.END
 
     # Fetch the booking to verify the user
     try:
