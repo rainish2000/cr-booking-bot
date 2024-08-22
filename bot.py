@@ -82,6 +82,8 @@ async def start(update: Update, context: CallbackContext) -> None:
     )
     chat_id = update.message.chat_id
     print(f"Chat ID: {chat_id}")
+    await context.bot.send_message(chat_id, "deleted")
+
 
 async def help_command(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Use /book to make a booking. Use /list to view upcoming bookings.')
@@ -360,7 +362,6 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     conn.commit()
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
-    await context.bot.send_message(1002185660085, "deleted")
     return ConversationHandler.END
     
 async def cancel(update: Update, context: CallbackContext) -> int:
