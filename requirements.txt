@@ -5,3 +5,4 @@ wheel
 psycopg2
 python-telegram-bot-calendar
 boto3
+requests

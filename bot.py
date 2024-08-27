@@ -3,6 +3,7 @@ import os
 import psycopg2
 import boto3
 import json
+import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, ConversationHandler, filters
 from dotenv import load_dotenv
@@ -258,10 +259,17 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
 
     # await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
     await context.bot.send_message(578344910, f"Conference Room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
+    payload = {
+        "date": date,
+        "start_time": start_time,
+        "end_time": end_time,
+        "details": details,
+        "telegram_user": username
+    }
 
-    # Clear the user state
+    response = requests.post("https://hooks.slack.com/triggers/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", json=payload)
+
     user_state.pop(user_id, None)
-
     return ConversationHandler.END
 
 async def list_bookings(update: Update, context: CallbackContext) -> None:
