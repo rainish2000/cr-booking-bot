@@ -50,7 +50,6 @@ logger = logging.getLogger(__name__)
 # Initialize PostgreSQL database
 c = conn.cursor()
 c.execute('''
-    DROP TABLE bookings;
     CREATE TABLE IF NOT EXISTS bookings (
         id SERIAL PRIMARY KEY,
         date TEXT,
