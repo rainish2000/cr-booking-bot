@@ -17,6 +17,7 @@ DB_HOSTNAME = os.getenv("DB_HOSTNAME")
 PORT = os.getenv("PORT")
 SECRET_NAME = os.getenv("SECRET_NAME")
 CHAT_ID = os.getenv("CHAT_ID")
+THREAD_ID = os.getenv("THREAD_ID")
 
 region_name = "ap-southeast-1"
 
@@ -83,7 +84,9 @@ async def start(update: Update, context: CallbackContext) -> None:
         fr'Hello {user.mention_markdown_v2()}\! Use /book to make a booking, or /list to view upcoming bookings',
     )
     chat_id = update.message.chat_id
+    thread_id = update.message.message_thread_id
     print(f"Chat ID: {chat_id}")
+    print(f"Thread ID: {thread_id}")
 
 
 async def help_command(update: Update, context: CallbackContext) -> None:
