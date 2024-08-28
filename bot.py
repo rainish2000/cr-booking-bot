@@ -256,8 +256,10 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
         f"Conference Room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}",
         reply_markup=ReplyKeyboardRemove()
     )
-
-    await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
+    try:
+        await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
+    except:
+        print(f"chat {CHAT_ID} not found")
 
     payload = {
         "date": date,
@@ -267,7 +269,7 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
         "telegram_user": username
     }
 
-    response = requests.post("https://hooks.slack.com/triggers/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", json=payload)
+    # response = requests.post("https://hooks.slack.com/triggers/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", json=payload)
 
     user_state.pop(user_id, None)
     return ConversationHandler.END
@@ -373,7 +375,10 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     conn.commit()
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
-    await context.bot.send_message(chat_id=CHAT_ID, text=f'Booking with ID {booking_id} was deleted by @{username}.')
+    try:
+        await context.bot.send_message(chat_id=CHAT_ID, text=f'Booking with ID {booking_id} was deleted by @{username}.')
+    except:
+        print(f"chat {CHAT_ID} not found")
 
     return ConversationHandler.END
     
