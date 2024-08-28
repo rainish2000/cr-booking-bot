@@ -96,6 +96,9 @@ async def help_command(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Use /book to make a booking. Use /list to view upcoming bookings.')
 
 async def book(update: Update, context: CallbackContext) -> int:
+    chat_type = update.message.chat.type
+    if chat_type == 'supergroup':
+            return ConversationHandler.END
     user_id = update.message.from_user.id
     user_state[user_id] = {}
 
@@ -326,7 +329,9 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(response)
 
 async def delete_booking(update: Update, context: CallbackContext) -> int:
-    """List the user's bookings and ask for the ID of the one they want to delete."""
+    chat_type = update.message.chat.type
+    if chat_type == 'supergroup':
+            return ConversationHandler.END
     user = update.message.from_user
     username = user.username
 
