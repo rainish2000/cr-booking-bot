@@ -85,8 +85,10 @@ async def start(update: Update, context: CallbackContext) -> None:
     )
     chat_id = update.message.chat_id
     thread_id = update.message.message_thread_id
+    chat_type = update.message.chat.type
     print(f"Chat ID: {chat_id}")
     print(f"Thread ID: {thread_id}")
+    print(f"Type: {chat_type}")
 
 
 async def help_command(update: Update, context: CallbackContext) -> None:
