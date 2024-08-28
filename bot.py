@@ -384,10 +384,10 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     conn.commit()
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
-    try:
-        await context.bot.send_message(chat_id=CHAT_ID, message_thread_id=THREAD_ID, text=f'Booking with ID {booking_id} was deleted by @{username}.')
-    except:
-        print(f"chat {CHAT_ID} not found")
+    # try:
+    #     await context.bot.send_message(chat_id=CHAT_ID, message_thread_id=THREAD_ID, text=f'Booking with ID {booking_id} was deleted by @{username}.')
+    # except:
+    #     print(f"chat {CHAT_ID} not found")
 
     return ConversationHandler.END
     
