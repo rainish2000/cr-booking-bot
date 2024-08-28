@@ -81,10 +81,10 @@ class MyStyleCalendar(DetailedTelegramCalendar):
 async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
     chat_type = update.message.chat.type
-    if chat_type == 'private':
-        await update.message.reply_markdown_v2(
-            fr'Hello {user.mention_markdown_v2()}\! Use /book to make a booking, or /list to view upcoming bookings',
-        )
+    # if chat_type == 'private':
+    await update.message.reply_markdown_v2(
+        fr'Hello! Start a private chat with me and use /book to make a new booking, or /list to view upcoming bookings',
+    )
     chat_id = update.message.chat_id
     thread_id = update.message.message_thread_id
     print(f"Chat ID: {chat_id}")
