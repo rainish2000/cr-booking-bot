@@ -80,12 +80,13 @@ class MyStyleCalendar(DetailedTelegramCalendar):
 
 async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
-    await update.message.reply_markdown_v2(
-        fr'Hello {user.mention_markdown_v2()}\! Use /book to make a booking, or /list to view upcoming bookings',
-    )
+    chat_type = update.message.chat.type
+    if chat_type == 'private':
+        await update.message.reply_markdown_v2(
+            fr'Hello {user.mention_markdown_v2()}\! Use /book to make a booking, or /list to view upcoming bookings',
+        )
     chat_id = update.message.chat_id
     thread_id = update.message.message_thread_id
-    chat_type = update.message.chat.type
     print(f"Chat ID: {chat_id}")
     print(f"Thread ID: {thread_id}")
     print(f"Type: {chat_type}")
@@ -262,7 +263,7 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
         reply_markup=ReplyKeyboardRemove()
     )
     try:
-        await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
+        await context.bot.send_message(chat_id=CHAT_ID, message_thread_id=THREAD_ID, text=f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
     except:
         print(f"chat {CHAT_ID} not found")
 
@@ -381,7 +382,7 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
     try:
-        await context.bot.send_message(chat_id=CHAT_ID, text=f'Booking with ID {booking_id} was deleted by @{username}.')
+        await context.bot.send_message(chat_id=CHAT_ID, message_thread_id=THREAD_ID, text=f'Booking with ID {booking_id} was deleted by @{username}.')
     except:
         print(f"chat {CHAT_ID} not found")
 
