@@ -257,8 +257,8 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
         reply_markup=ReplyKeyboardRemove()
     )
 
-    # await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
-    await context.bot.send_message(578344910, f"Conference Room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
+    await context.bot.send_message(CHAT_ID, f"Conference room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}")
+
     payload = {
         "date": date,
         "start_time": start_time,
@@ -373,7 +373,7 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     conn.commit()
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
-    await context.bot.send_message(chat_id=578344910, text=f'Booking with ID {booking_id} was deleted by @{username}.')
+    await context.bot.send_message(chat_id=CHAT_ID, text=f'Booking with ID {booking_id} was deleted by @{username}.')
 
     return ConversationHandler.END
     
