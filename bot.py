@@ -41,7 +41,7 @@ secret = json.loads(get_secret_value_response['SecretString'])
 username = secret['username']
 password = secret['password']
 
-conn = psycopg2.connect(f"postgres://{username}:{password}@{DB_HOSTNAME}:{PORT}/")
+conn = psycopg2.connect( dbname="postgres", user=username, password=password, host=DB_HOSTNAME, port=PORT, )
 
 # Enable logging
 logging.basicConfig(
