@@ -2,7 +2,7 @@ python-dotenv
 datetime
 python-telegram-bot
 wheel
-psycopg2
+psycopg2-binary
 python-telegram-bot-calendar
 boto3
 requests
