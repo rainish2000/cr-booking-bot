@@ -50,18 +50,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize PostgreSQL database
-c = conn.cursor()
-c.execute('''
-    CREATE TABLE IF NOT EXISTS bookings (
-        id SERIAL PRIMARY KEY,
-        date TEXT,
-        start_time TEXT,
-        end_time TEXT,
-        username TEXT,
-        details TEXT
-    );
-''')
-conn.commit()
+with conn.cursor() as c:
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS bookings (
+            id SERIAL PRIMARY KEY,
+            date TEXT,
+            start_time TEXT,
+            end_time TEXT,
+            username TEXT,
+            details TEXT
+        );
+    ''')
+    conn.commit()
 
 # Date format
 DATE_FORMAT = "%d %b %Y"
@@ -127,8 +127,9 @@ async def handle_date_selection(update: Update, context: CallbackContext) -> int
         user_state[user_id]['date'] = selected_date
 
         # Fetch booked time slots for the selected date
-        c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
-        booked_slots = c.fetchall()
+        with conn.cursor() as c:
+            c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
+            booked_slots = c.fetchall()
 
         # Convert booked slots to datetime.time objects
         booked_slots = [(datetime.strptime(start, TIME_FORMAT).time(), datetime.strptime(end, TIME_FORMAT).time()) for start, end in booked_slots]
@@ -176,8 +177,9 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
     start_time = datetime.strptime(selected_start_time, TIME_FORMAT).time()
 
     # Fetch booked time slots for the selected date
-    c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
-    booked_slots = c.fetchall()
+    with conn.cursor() as c:
+        c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
+        booked_slots = c.fetchall()
 
     # Convert booked slots to datetime.time objects
     booked_slots = [(datetime.strptime(start, TIME_FORMAT).time(), datetime.strptime(end, TIME_FORMAT).time()) for start, end in booked_slots]
@@ -255,9 +257,10 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
     username = update.message.from_user.username
 
     # Insert the booking into the database
-    c.execute('INSERT INTO bookings (date, start_time, end_time, username, details) VALUES (%s, %s, %s, %s, %s)', 
-              (date, start_time, end_time, username, details))
-    conn.commit()
+    with conn.cursor() as c:
+        c.execute('INSERT INTO bookings (date, start_time, end_time, username, details) VALUES (%s, %s, %s, %s, %s)', 
+                (date, start_time, end_time, username, details))
+        conn.commit()
 
     await update.message.reply_text(
         f"Conference Room booked for {date} from {start_time} to {end_time} by @{username}.\nDetails: {details}",
@@ -286,8 +289,9 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
     response = "Upcoming Bookings:\n\n"
     
     # Fetch all bookings from the database
-    c.execute('SELECT date, start_time, end_time, username, details FROM bookings')
-    rows = c.fetchall()
+    with conn.cursor() as c:
+        c.execute('SELECT date, start_time, end_time, username, details FROM bookings')
+        rows = c.fetchall()
     #// print(rows)
     
     # Get current date and time
@@ -334,8 +338,9 @@ async def delete_booking(update: Update, context: CallbackContext) -> int:
     username = user.username
 
     # Fetch all bookings made by the user
-    c.execute("SELECT id, date, start_time, end_time, details FROM bookings WHERE username = %s;", (username,))
-    results = c.fetchall()
+    with conn.cursor() as c:
+        c.execute("SELECT id, date, start_time, end_time, details FROM bookings WHERE username = %s;", (username,))
+        results = c.fetchall()
 
     if not results:
         await update.message.reply_text('You have no bookings to delete.')
@@ -380,8 +385,9 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
         return ConversationHandler.END
 
     # Delete the booking
-    c.execute("DELETE FROM bookings WHERE id = %s;", (booking_id,))
-    conn.commit()
+    with conn.cursor() as c:
+        c.execute("DELETE FROM bookings WHERE id = %s;", (booking_id,))
+        conn.commit()
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
     # try:
