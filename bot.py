@@ -41,7 +41,6 @@ secret = json.loads(get_secret_value_response['SecretString'])
 username = secret['username']
 password = secret['password']
 
-conn = psycopg2.connect( dbname="postgres", user=username, password=password, host=DB_HOSTNAME, port=PORT, )
 
 # Enable logging
 logging.basicConfig(
@@ -49,9 +48,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize PostgreSQL database
-with conn.cursor() as c:
-    c.execute('''
+def connect_to_db():
+    return psycopg2.connect( dbname="postgres", user=username, password=password, host=DB_HOSTNAME, port=PORT, )\
+    
+with connect_to_db() as conn:
+    conn.cursor.execute('''
         CREATE TABLE IF NOT EXISTS bookings (
             id SERIAL PRIMARY KEY,
             date TEXT,
@@ -127,7 +128,8 @@ async def handle_date_selection(update: Update, context: CallbackContext) -> int
         user_state[user_id]['date'] = selected_date
 
         # Fetch booked time slots for the selected date
-        with conn.cursor() as c:
+        with connect_to_db() as conn:
+            c = conn.cursor()
             c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
             booked_slots = c.fetchall()
 
@@ -177,7 +179,8 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
     start_time = datetime.strptime(selected_start_time, TIME_FORMAT).time()
 
     # Fetch booked time slots for the selected date
-    with conn.cursor() as c:
+    with connect_to_db() as conn:
+        c = conn.cursor
         c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
         booked_slots = c.fetchall()
 
@@ -257,7 +260,8 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
     username = update.message.from_user.username
 
     # Insert the booking into the database
-    with conn.cursor() as c:
+    with connect_to_db() as conn:
+        c = conn.cursor
         c.execute('INSERT INTO bookings (date, start_time, end_time, username, details) VALUES (%s, %s, %s, %s, %s)', 
                 (date, start_time, end_time, username, details))
         conn.commit()
@@ -289,7 +293,8 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
     response = "Upcoming Bookings:\n\n"
     
     # Fetch all bookings from the database
-    with conn.cursor() as c:
+    with connect_to_db() as conn:
+        c = conn.cursor
         c.execute('SELECT date, start_time, end_time, username, details FROM bookings')
         rows = c.fetchall()
     #// print(rows)
@@ -338,7 +343,8 @@ async def delete_booking(update: Update, context: CallbackContext) -> int:
     username = user.username
 
     # Fetch all bookings made by the user
-    with conn.cursor() as c:
+    with connect_to_db() as conn:
+        c = conn.cursor
         c.execute("SELECT id, date, start_time, end_time, details FROM bookings WHERE username = %s;", (username,))
         results = c.fetchall()
 
@@ -368,24 +374,25 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
         return ConversationHandler.END
 
     # Fetch the booking to verify the user
-    try:
-        c.execute("SELECT username FROM bookings WHERE id = %s;", (booking_id,))
-        result = c.fetchone()
-    except:
-        await update.message.reply_text('An error occured. Try again using /delete, and please provide only a single number in your reply.')
-        c.connection.rollback()
-        return ConversationHandler.END
+    with connect_to_db() as conn:
+        c = conn.cursor
+        try:
+            c.execute("SELECT username FROM bookings WHERE id = %s;", (booking_id,))
+            result = c.fetchone()
+        except:
+            await update.message.reply_text('An error occured. Try again using /delete, and please provide only a single number in your reply.')
+            c.connection.rollback()
+            return ConversationHandler.END
 
-    if result is None:
-        await update.message.reply_text('Booking not found with that ID. Operation cancelled.')
-        return ConversationHandler.END
+        if result is None:
+            await update.message.reply_text('Booking not found with that ID. Operation cancelled.')
+            return ConversationHandler.END
 
-    if result[0] != username:
-        await update.message.reply_text('You can only delete your own bookings. Operation cancelled.')
-        return ConversationHandler.END
+        if result[0] != username:
+            await update.message.reply_text('You can only delete your own bookings. Operation cancelled.')
+            return ConversationHandler.END
 
-    # Delete the booking
-    with conn.cursor() as c:
+        # Delete the booking
         c.execute("DELETE FROM bookings WHERE id = %s;", (booking_id,))
         conn.commit()
 
