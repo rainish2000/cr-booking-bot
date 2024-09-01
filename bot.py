@@ -52,7 +52,8 @@ def connect_to_db():
     return psycopg2.connect( dbname="postgres", user=username, password=password, host=DB_HOSTNAME, port=PORT, )\
     
 with connect_to_db() as conn:
-    conn.cursor.execute('''
+    c = conn.cursor
+    c.execute('''
         CREATE TABLE IF NOT EXISTS bookings (
             id SERIAL PRIMARY KEY,
             date TEXT,
