@@ -52,7 +52,7 @@ def connect_to_db():
     return psycopg2.connect( dbname="postgres", user=username, password=password, host=DB_HOSTNAME, port=PORT, )\
     
 with connect_to_db() as conn:
-    c = conn.cursor
+    c = conn.cursor()
     c.execute('''
         CREATE TABLE IF NOT EXISTS bookings (
             id SERIAL PRIMARY KEY,
@@ -181,7 +181,7 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
 
     # Fetch booked time slots for the selected date
     with connect_to_db() as conn:
-        c = conn.cursor
+        c = conn.cursor()
         c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
         booked_slots = c.fetchall()
 
@@ -262,7 +262,7 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
 
     # Insert the booking into the database
     with connect_to_db() as conn:
-        c = conn.cursor
+        c = conn.cursor()
         c.execute('INSERT INTO bookings (date, start_time, end_time, username, details) VALUES (%s, %s, %s, %s, %s)', 
                 (date, start_time, end_time, username, details))
         conn.commit()
@@ -295,7 +295,7 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
     
     # Fetch all bookings from the database
     with connect_to_db() as conn:
-        c = conn.cursor
+        c = conn.cursor()
         c.execute('SELECT date, start_time, end_time, username, details FROM bookings')
         rows = c.fetchall()
     #// print(rows)
@@ -345,7 +345,7 @@ async def delete_booking(update: Update, context: CallbackContext) -> int:
 
     # Fetch all bookings made by the user
     with connect_to_db() as conn:
-        c = conn.cursor
+        c = conn.cursor()
         c.execute("SELECT id, date, start_time, end_time, details FROM bookings WHERE username = %s;", (username,))
         results = c.fetchall()
 
@@ -376,7 +376,7 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
 
     # Fetch the booking to verify the user
     with connect_to_db() as conn:
-        c = conn.cursor
+        c = conn.cursor()
         try:
             c.execute("SELECT username FROM bookings WHERE id = %s;", (booking_id,))
             result = c.fetchone()
