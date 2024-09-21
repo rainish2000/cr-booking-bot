@@ -4,13 +4,12 @@ import psycopg2
 import boto3
 import json
 import requests
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove, ChatMember
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, ConversationHandler, filters
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, date
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 
-# Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_HOSTNAME = os.getenv("DB_HOSTNAME")
@@ -18,29 +17,30 @@ PORT = os.getenv("PORT")
 SECRET_NAME = os.getenv("SECRET_NAME")
 CHAT_ID = os.getenv("CHAT_ID")
 THREAD_ID = os.getenv("THREAD_ID")
+ENV = os.getenv("ENV")
 
-region_name = "ap-southeast-1"
 
-# Create a Secrets Manager client
-session = boto3.session.Session()
-client = session.client(
-    service_name='secretsmanager',
-    region_name=region_name
-)
-
-try:
-    get_secret_value_response = client.get_secret_value(
-        SecretId=SECRET_NAME
+if ENV == "prod":
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name='ap-southeast-1'
     )
 
-except Exception as e:
-    raise e
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=SECRET_NAME
+        )
+    except Exception as e:
+        raise e
 
-secret = json.loads(get_secret_value_response['SecretString'])
+    secret = json.loads(get_secret_value_response['SecretString'])
+    username = secret['username']
+    password = secret['password']
 
-username = secret['username']
-password = secret['password']
-
+elif ENV == "dev":
+    username = "nish"
+    password = ""
 
 # Enable logging
 logging.basicConfig(
@@ -80,10 +80,25 @@ class MyStyleCalendar(DetailedTelegramCalendar):
     empty_month_button = ""
     empty_year_button = ""
 
+async def is_user_in_group(update: Update, context: CallbackContext) -> bool:
+    user_id = update.effective_user.id
+    try:
+        member = await context.bot.get_chat_member(CHAT_ID, user_id)
+        if member.status in [ChatMember.MEMBER, ChatMember.ADMINISTRATOR, ChatMember.OWNER]:
+            return True
+        else:
+            return False
+    except Exception as e:
+        # Handle cases where the user is not found or the bot doesn't have permission
+        logger.error(f"Error checking membership: {e}")
+        return False
+
 async def start(update: Update, context: CallbackContext) -> None:
-    user = update.effective_user
+    if not await is_user_in_group(update, context):
+        await update.message.reply_text("You are not authorized to use this bot.")
+        return
+    
     chat_type = update.message.chat.type
-    # if chat_type == 'private':
     await update.message.reply_text('Hello! Start a private chat with me and use /book to make a new booking, or /list to view upcoming bookings.')
     chat_id = update.message.chat_id
     thread_id = update.message.message_thread_id
@@ -91,20 +106,23 @@ async def start(update: Update, context: CallbackContext) -> None:
     print(f"Thread ID: {thread_id}")
     print(f"Type: {chat_type}")
 
-
 async def help_command(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Use /book to make a booking. Use /list to view upcoming bookings.')
 
 async def book(update: Update, context: CallbackContext) -> int:
+    if not await is_user_in_group(update, context):
+        await update.message.reply_text("You are not authorized to use this bot.")
+        return
+    
     chat_type = update.message.chat.type
-    if chat_type == 'supergroup':
+    if chat_type == 'supergroup' or chat_type == 'group':
+            await update.message.reply_text('Start a private chat with me to make a new booking.')
             return ConversationHandler.END
     user_id = update.message.from_user.id
     user_state[user_id] = {}
 
-    # Define the minimum and maximum dates for the calendar
     today = date.today()
-    min_date = today  # Start from today
+    min_date = today
     max_date = date(today.year + 1, 12, 31)  # Up to the end of next year
 
     # Create and display a calendar with a restricted year range
@@ -118,7 +136,7 @@ async def handle_date_selection(update: Update, context: CallbackContext) -> int
 
     user_id = query.from_user.id
     today = date.today()
-    min_date = today  # Start from today
+    min_date = today
     max_date = date(today.year + 1, 12, 31)  # Up to the end of next year
     result, key, step = MyStyleCalendar(min_date=min_date, max_date=max_date).process(query.data)
 
@@ -134,7 +152,6 @@ async def handle_date_selection(update: Update, context: CallbackContext) -> int
             c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
             booked_slots = c.fetchall()
 
-        # Convert booked slots to datetime.time objects
         booked_slots = [(datetime.strptime(start, TIME_FORMAT).time(), datetime.strptime(end, TIME_FORMAT).time()) for start, end in booked_slots]
 
         # Generate available start time slots (on the hour from 09:00 to 17:00)
@@ -156,7 +173,6 @@ async def handle_date_selection(update: Update, context: CallbackContext) -> int
         # Generate time slot buttons
         keyboard = [[InlineKeyboardButton(slot, callback_data=f"start_time:{slot}")] for slot in time_slots]
         keyboard.append([InlineKeyboardButton("Cancel", callback_data="cancel")])
-        #// keyboard.append([InlineKeyboardButton("Back", callback_data="back_to_start")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(f'You have chosen {selected_date}. Select a start time:', reply_markup=reply_markup)
         return SELECTING_START
@@ -168,9 +184,6 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
     if query.data == "cancel":
         await query.edit_message_text('Booking process canceled.')
         return ConversationHandler.END
-
-    #//  if query.data == "back_to_start":
-    #//     return await handle_date_selection()
 
     user_id = query.from_user.id
     selected_start_time = query.data.split(':')[1]
@@ -185,7 +198,6 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
         c.execute('SELECT start_time, end_time FROM bookings WHERE date = %s', (selected_date,))
         booked_slots = c.fetchall()
 
-    # Convert booked slots to datetime.time objects
     booked_slots = [(datetime.strptime(start, TIME_FORMAT).time(), datetime.strptime(end, TIME_FORMAT).time()) for start, end in booked_slots]
 
     # Find the next booking start time after the selected start time
@@ -204,7 +216,6 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
     current_time = (datetime.combine(datetime.today(), start_time) + timedelta(hours=1)).time()  # Start from the next hour
 
     while current_time <= datetime.strptime(f"{end_hour:02d}00", TIME_FORMAT).time():
-        # Ensure end time does not extend into the next booking slot
         if next_booking_start and current_time > next_booking_start:
             break
 
@@ -224,7 +235,6 @@ async def handle_start_time_selection(update: Update, context: CallbackContext) 
     # Generate time slot buttons
     keyboard = [[InlineKeyboardButton(slot, callback_data=f"end_time:{slot}")] for slot in time_slots]
     keyboard.append([InlineKeyboardButton("Cancel", callback_data="cancel")])
-    #// keyboard.append([InlineKeyboardButton("Back", callback_data="back_to_start_time")])
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_text(f'You have chosen start time {selected_start_time}. Select an end time:', reply_markup=reply_markup)
     return SELECTING_END
@@ -237,22 +247,23 @@ async def handle_end_time_selection(update: Update, context: CallbackContext) ->
     if query.data == "cancel":
         await query.edit_message_text('Booking process canceled.')
         return ConversationHandler.END
-
-    #// if query.data == "back_to_start_time":
-    #//     print("back to start time pressed")
-    #//     return SELECTING_START
     
     user_id = query.from_user.id
     selected_end_time = query.data.split(':')[1]
     user_state[user_id]['end_time'] = selected_end_time
 
-    # Prompt user to enter meeting details
-    await query.edit_message_text(f"You have chosen end time {selected_end_time}. Please type in the details for the meeting:\nE.g. \"Meeting with XXX\"")
+    await query.edit_message_text(
+        f"You have chosen end time {selected_end_time}. Please type in the details for the meeting:\nE.g. \"Meeting with XXX\". Type \"cancel\" to cancel"
+    )
     return TYPING_DETAILS
 
 async def receive_meeting_details(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
     details = update.message.text
+    if details.lower() == "cancel":
+        await update.message.reply_text('Booking process canceled.')
+        return ConversationHandler.END
+
     user_state[user_id]['details'] = details
 
     date = user_state[user_id]['date']
@@ -290,7 +301,10 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
     return ConversationHandler.END
 
 async def list_bookings(update: Update, context: CallbackContext) -> None:
-    """List all upcoming bookings."""
+    if not await is_user_in_group(update, context):
+        await update.message.reply_text("You are not authorized to use this bot.")
+        return
+    
     response = "Upcoming Bookings:\n\n"
     
     # Fetch all bookings from the database
@@ -298,14 +312,10 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
         c = conn.cursor()
         c.execute('SELECT date, start_time, end_time, username, details FROM bookings')
         rows = c.fetchall()
-    #// print(rows)
     
-    # Get current date and time
     now = datetime.now()
-    
-    # List of upcoming bookings
+
     upcoming_bookings = []
-    
     for row in rows:
         booking_date = datetime.strptime(row[0], DATE_FORMAT)
         booking_start_time = datetime.strptime(row[1], TIME_FORMAT).time()
@@ -337,9 +347,14 @@ async def list_bookings(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(response)
 
 async def delete_booking(update: Update, context: CallbackContext) -> int:
+    if not await is_user_in_group(update, context):
+        await update.message.reply_text("You are not authorized to use this bot.")
+        return
+    
     chat_type = update.message.chat.type
-    if chat_type == 'supergroup':
-            return ConversationHandler.END
+    if chat_type == 'supergroup' or chat_type == 'group':
+        await update.message.reply_text('Start a private chat with me to delete a booking.')
+        return ConversationHandler.END
     user = update.message.from_user
     username = user.username
 
@@ -378,7 +393,7 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
     with connect_to_db() as conn:
         c = conn.cursor()
         try:
-            c.execute("SELECT username FROM bookings WHERE id = %s;", (booking_id,))
+            c.execute("SELECT username FROM bookings WHERE id = %s;", (booking_id))
             result = c.fetchone()
         except:
             await update.message.reply_text('An error occured. Try again using /delete, and please provide only a single number in your reply.')
@@ -387,14 +402,16 @@ async def confirm_delete_booking(update: Update, context: CallbackContext) -> in
 
         if result is None:
             await update.message.reply_text('Booking not found with that ID. Operation cancelled.')
+            c.connection.rollback()
             return ConversationHandler.END
 
         if result[0] != username:
             await update.message.reply_text('You can only delete your own bookings. Operation cancelled.')
+            c.connection.rollback()
             return ConversationHandler.END
 
         # Delete the booking
-        c.execute("DELETE FROM bookings WHERE id = %s;", (booking_id,))
+        c.execute("DELETE FROM bookings WHERE id = %s;", (booking_id))
         conn.commit()
 
     await update.message.reply_text(f'Booking with ID {booking_id} has been deleted.')
@@ -443,7 +460,7 @@ def main() -> None:
         states={
             DELETING_BOOKING: [MessageHandler(filters.TEXT, confirm_delete_booking)],
         },
-        fallbacks=[CallbackQueryHandler(delete_booking, pattern="^cancel$")],
+        fallbacks=[MessageHandler(filters.Regex('^cancel$'), cancel)],
     )
     
     application.add_handler(delete_conv_handler)
