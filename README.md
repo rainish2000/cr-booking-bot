@@ -10,5 +10,7 @@ So here are its main features:
 - lets you delete your own bookings (in case of typos, misclicks, etc)
 
 - have the bot send a message to the Room Use topic every time someone books the room (the bot will have to be added to the group for this)
+
+## Future Improvements
 - allow booking of more than one room, currently only allows Conference Room
 - allow editing of bookings, currently only allows deletion
