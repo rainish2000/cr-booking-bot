@@ -295,8 +295,6 @@ async def receive_meeting_details(update: Update, context: CallbackContext) -> i
         "telegram_user": username
     }
 
-    # response = requests.post("https://hooks.slack.com/triggers/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", json=payload)
-
     user_state.pop(user_id, None)
     return ConversationHandler.END
 
