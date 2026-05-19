@@ -39,7 +39,7 @@ if ENV == "prod":
     password = secret['password']
 
 elif ENV == "dev":
-    username = "nish"
+    username = "dev"
     password = ""
 
 # Enable logging
