@@ -12,5 +12,3 @@ So here are its main features:
 - have the bot send a message to the Room Use topic every time someone books the room (the bot will have to be added to the group for this)
 - allow booking of more than one room, currently only allows Conference Room
 - allow editing of bookings, currently only allows deletion
-
-If you'd like to and have the time, you can test it out by starting a chat with @SmartsNSmilesBot and hitting "start". Let me know what you guys think, thanks!
